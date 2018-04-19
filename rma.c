@@ -2,38 +2,62 @@
  *  ECE 4680 - Lab 8
  *  4/17/18
  */
-
-
 #include <stdio.h>
 #include <stdlib.h>
-
-
+#include <math.h>
+#define NUM_TASKS 6
 int main()
 {
-    int i, k, l;
-    int count;
+    // indexing values
+    int i, k, l, j;
+    int count = 0;
+    int breakFlag = 0;
     float sum;
-
     // Initializing our values ---------------------------------------------------
-    // Features
-    float altitudeDataT = 2.56;
-    float velocityDataT = 40.96;
-    float positionDataT = 1280.0;
-    float dispData = 1000.0;
-    float attitudeMessage = 61.44;
-    float navigationMessage = 1024.0;
-    float overhead = .153;  // .153 ms overhead time
-
-    // Tasks
-    float attRT = 1.3, attTableUsage = .2, attChannelUsage = 0;
-    float veloRT = 4.7, veloTableUsage = .2, veloTableUsage = 0;
-    float posRT = 3.00, posTableUsage = .2, posChannelUsage = 0;
-    float dispRT = 23.0, dispTableUsage = .3, dispChannelUsage = 0;
-    float attMessRT = 9.0, attMessTableUsage = .15, attMessChannelUsage = 3.0;
-    float navMessRT = 38.3, navMessTableUsage = .3, navMessageChannelUsage = 6.0;
-
-
-
-
+    // Periods of the features
+    float featurePeriods[6] = {2.56, 40.96, 61.44, 1000, 1024, 1280};
+    // .153 ms overhead time
+    float overhead = .153;
+    // Task values (in ms)
+    float taskRunTimes[6] = {1.3, 4.7, 9.0, 23.0, 38.3, 3.0};
+    float taskTableUsages[6] = {.2, .2, .2, .3, .15, .3};
+    float taskChannelUsages[6] = {0.0, 0.0, 0.0, 0.0, 3.0, 6.0};
+    // Blocking times (in ms)
+    float blockingTimes[6] = {0.3, 0.3, 6.3, 6.3, 0.3, 0.0};
+    // Begin algorithm ------------------------------------------------------------
+    // Loop for i (1 to number of tasks)
+    for(i = 1; i <= NUM_TASKS; i++)
+    {
+        breakFlag = 0;
+        // For each i, we have k = 1...i
+        for(k = 1; k <= i; k++)
+        {
+            // For each k, we have l = 1...floor(period[i]/period[k])
+            for(l = 1; l <= floor(featurePeriods[i-1]/featurePeriods[k-1]); l++)
+            {
+                // Reset sum value for new iteration
+                sum = 0.0;
+                // Compute sum on left side of equation from j = 1...i-1
+                for(j = 1; j <= i - 1; j++)
+                {
+                    sum += ((taskRunTimes[j-1] + overhead)*(ceil((l * featurePeriods[k-1])/featurePeriods[j-1])));
+                }
+                sum += ((taskRunTimes[i-1] + overhead) + blockingTimes[i-1]);
+                if(sum <= (l * featurePeriods[k-1]))
+                {
+                    // Found valid values, don't continue
+                    count++;
+                    // We also need to break out of the current k loop so we can go to
+                    // the next i loop
+                    breakFlag = 1;
+                    printf("Found task with priority %d is schedulable with i:%d k:%d l:%d\n",i,i,k,l);
+                    break;
+                }
+            }
+            if(breakFlag) break;
+        }
+    }
+    if((i-1) != count) printf("---------- !!NOT SCHEDULABLE!! ----------\n");
+    else printf("---------- This is schedulable ----------\n");
     return 0;
 }
